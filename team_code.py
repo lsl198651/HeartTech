@@ -159,13 +159,11 @@ def recording_murmur_diagnose(multi_scale_specs, murmur_classifier, murmur_class
 
 @torch.no_grad()
 def run_challenge_model(model, data, recordings, verbose):
-    (device, preprocessor, murmur_classifier, outcome_classifier, murmur_classes, outcome_classes) = model
+    (device, preprocessor, murmur_classifier, murmur_classes) = model #outcome_classifier,, outcome_classes
     interval = 1.0
     recording_murmur_counts = np.zeros(len(murmur_classes), dtype=np.int_)
-    with open('val.csv', encoding="utf-8") as csvfile:
-        reader = csv.reader(csvfile)
-        val_list = [row[0] for row in reader]
-    patient_features = torch.from_numpy(load_patient_features(data,list=val_list)).unsqueeze(0).to(device)
+    
+    patient_features = torch.from_numpy(load_patient_features(data)).unsqueeze(0).to(device)
     recording_murmur_preds = np.zeros(len(recordings), dtype=np.int_)
     recording_outcome_preds = np.zeros(len(recordings), dtype=np.int_)
     for i in range(len(recordings)):
@@ -182,16 +180,14 @@ def run_challenge_model(model, data, recordings, verbose):
     # recording_outcome_counts = np.bincount(recording_outcome_preds, minlength=2)
     
     murmur_labels = np.zeros(len(murmur_classes), dtype=np.int_)
-        
-    if recording_murmur_counts[0] > 0:
-        murmur_labels[0] = 1
-        murmur_probabilities = np.array([1., 0., 0.])
-    elif recording_murmur_counts[1] > 0 and recording_murmur_counts[2] < 2:
-        murmur_labels[1] = 1
-        murmur_probabilities = np.array([0., 1., 0.])
-    else:
-        murmur_labels[2] = 1
-        murmur_probabilities = recording_murmur_counts / recording_murmur_counts.sum()
+    #如果没有1，则为absent
+    if recording_murmur_counts[1] == 0:
+        murmur_labels=0
+    else:#否则present
+    # elif recording_murmur_counts[1] > 0 and recording_murmur_counts[2] < 2:
+        murmur_labels= 1
+        # murmur_labels[2] = 1
+        # murmur_probabilities = recording_murmur_counts / recording_murmur_counts.sum()
     
     # outcome_labels = np.zeros(2, dtype=np.int_)
     # idx = 0 if recording_outcome_counts[0] > 0 else 1
@@ -199,11 +195,11 @@ def run_challenge_model(model, data, recordings, verbose):
     # outcome_probabilities = np.zeros(2)
     # outcome_probabilities[idx] = 1.
     
-    classes = murmur_classes + outcome_classes[:2]
+    classes = murmur_classes #+ outcome_classes[:2]
     labels = murmur_labels#np.concatenate((murmur_labels, outcome_labels))
-    probabilities = murmur_probabilities#np.concatenate((murmur_probabilities, outcome_probabilities))
+    # probabilities = murmur_probabilities#np.concatenate((murmur_probabilities, outcome_probabilities))
 
-    return classes, labels, probabilities
+    return labels#, probabilities,classes, 
 
     
 # ################################################################################
@@ -231,12 +227,12 @@ def load_challenge_model(model_folder, verbose):
     murmur_classifier.load_state_dict(murmur_checkpoint['model_state_dict'])
     murmur_classifier.eval()
     
-    outcome_checkpoint = torch.load(os.path.join(model_folder, 'outcome_classifier.pth'), map_location=device)
-    outcome_classifier = Hierachical_MS_Net(num_classes=DATASET_CFG['num_outcome_classes'], include_patient_data=True, **MODEL_CFG).to(device)
-    outcome_classifier.load_state_dict(outcome_checkpoint['model_state_dict'])
-    outcome_classifier.eval()
+    # outcome_checkpoint = torch.load(os.path.join(model_folder, 'outcome_classifier.pth'), map_location=device)
+    # outcome_classifier = Hierachical_MS_Net(num_classes=DATASET_CFG['num_outcome_classes'], include_patient_data=True, **MODEL_CFG).to(device)
+    # outcome_classifier.load_state_dict(outcome_checkpoint['model_state_dict'])
+    # outcome_classifier.eval()
     
     murmur_classes = DATASET_CFG['murmur_classes']
-    outcome_classes = DATASET_CFG['outcome_classes']
+    # outcome_classes = DATASET_CFG['outcome_classes']
     
-    return (device, preprocessor, murmur_classifier, outcome_classifier, murmur_classes, outcome_classes)
+    return (device, preprocessor, murmur_classifier, murmur_classes)#outcome_classifier, , outcome_classes

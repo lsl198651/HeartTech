@@ -13,6 +13,9 @@ import numpy as np, os, sys
 from helper_code import *
 from team_code import load_challenge_model, run_challenge_model
 from config import *
+import csv
+import torch
+from torcheval.metrics.functional import binary_auprc, binary_auroc, binary_f1_score, binary_confusion_matrix, binary_accuracy, binary_precision, binary_recall
 
 # Run model.
 def run_model(model_folder, data_folder, output_folder, allow_failures, verbose):
@@ -38,18 +41,32 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
     # Run the team's model on the Challenge data.
     if verbose >= 1:
         print('Running model on Challenge data...')
-
-    # Iterate over the patient files.
+    labels_all=[]
+    with open('val.csv', encoding="utf-8") as csvfile:
+        reader = csv.reader(csvfile)
+        val_list = [row[0] for row in reader]
+    val_patient=[]
     for i in range(num_patient_files):
-        if verbose >= 2:
-            print('    {}/{}...'.format(i+1, num_patient_files))
-
         patient_data = load_patient_data(patient_files[i])
-        recordings = load_recordings(data_folder, patient_data)
+        id=get_patient_id(patient_data)
+        if id in val_list:
+            val_patient.append(patient_files[i])
+    target_all=[]
+    output_all=[]
+    # Iterate over the patient files.
+    for i in range(len(val_patient)):
+        if verbose >= 2:
+            print('    {}/{}...'.format(i+1, len(val_patient)))
 
+        patient_data = load_patient_data(val_patient[i])
+        recordings = load_recordings(data_folder, patient_data)
+        target=get_murmur(patient_data)
+        murmur_target=1 if target=="Present" else 0 
+        target_all.append(murmur_target)
         # Allow or disallow the model to fail on parts of the data; helpful for debugging.
         try:
-            classes, labels, probabilities = run_challenge_model(model, patient_data, recordings, verbose) ### Teams: Implement this function!!!
+            labels = run_challenge_model(model, patient_data, recordings, verbose) ### Teams: Implement this function!!!
+            output_all.append(labels)
         except:
             if allow_failures:
                 if verbose >= 2:
@@ -57,34 +74,47 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
                 classes, labels, probabilities = list(), list(), list()
             else:
                 raise
+    # 计算指标：
 
-        # Save Challenge outputs.
-        head, tail = os.path.split(patient_files[i])
-        root, extension = os.path.splitext(tail)
-        output_file = os.path.join(output_folder, root + '.csv')
-        patient_id = get_patient_id(patient_data)
-        save_challenge_outputs(output_file, patient_id, classes, labels, probabilities)
+    target_patient,output_patient=torch.tensor(target_all),torch.tensor(output_all)
+    
+    acc=binary_accuracy(target_patient,output_patient)
+    roc=binary_auroc(target_patient,output_patient)
+    prc=binary_auprc(target_patient,output_patient)
+    f1=binary_f1_score(target_patient,output_patient)
+    print(f'acc:{acc:.3%}\n roc:{roc:.3f}\n prc:{prc:.3f}\n f1:{f1:.3f}')
+
+
+        # # Save Challenge outputs.
+        # head, tail = os.path.split(patient_files[i])
+        # root, extension = os.path.splitext(tail)
+        # output_file = os.path.join(output_folder, root + '.csv')
+        # patient_id = get_patient_id(patient_data)
+        # save_challenge_outputs(output_file, patient_id, classes, labels, probabilities)
 
     if verbose >= 1:
         print('Done.')
 
 if __name__ == '__main__':
-    # Parse the arguments.
-    if not (len(sys.argv) == 4 or len(sys.argv) == 5):
-        raise Exception('Include the model, data, and output folders as arguments, e.g., python run_model.py model data outputs.')
+    # # Parse the arguments.
+    # if not (len(sys.argv) == 4 or len(sys.argv) == 5):
+    #     raise Exception('Include the model, data, and output folders as arguments, e.g., python run_model.py model data outputs.')
 
-    # Define the model, data, and output folders.
-    model_folder = sys.argv[1]
-    data_folder = sys.argv[2]
-    output_folder = sys.argv[3]
+    # # Define the model, data, and output folders.
+    # model_folder = sys.argv[1]
+    # data_folder = sys.argv[2]
+    # output_folder = sys.argv[3]
 
-    # Allow or disallow the model to fail on parts of the data; helpful for debugging.
+    # # Allow or disallow the model to fail on parts of the data; helpful for debugging.
     allow_failures = False
 
-    # Change the level of verbosity; helpful for debugging.
-    if len(sys.argv)==5 and is_integer(sys.argv[4]):
-        verbose = int(sys.argv[4])
-    else:
-        verbose = 1
+    # # Change the level of verbosity; helpful for debugging.
+    # if len(sys.argv)==5 and is_integer(sys.argv[4]):
+    #     verbose = int(sys.argv[4])
+    # else:
+    #     verbose = 1
+    data_folder=r'D:\Shilong\murmur\Dataset\PCGdataset\training_data'
+    model_folder=r'D:\Shilong\murmur\00_Code\LM\HeartTech3\model'
+    output_folder=r'D:\Shilong\murmur\00_Code\LM\HeartTech3\output'
 
-    run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
+    run_model(model_folder, data_folder, output_folder, allow_failures, verbose=2)
