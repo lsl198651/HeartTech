@@ -26,8 +26,8 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
     model = load_challenge_model(model_folder, verbose) ### Teams: Implement this function!!!
 
     # Find the patient data files.
-    patient_files = find_patient_files(data_folder)
-    num_patient_files = len(patient_files)
+    patient_files = find_patient_files(data_folder)#找txt文件
+    num_patient_files = len(patient_files)#txt数量
 
     if num_patient_files==0:
         raise Exception('No data was provided.')

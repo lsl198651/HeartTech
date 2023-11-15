@@ -8,7 +8,7 @@
 # Import libraries and functions. You can change or remove them.
 #
 ################################################################################
-
+import csv
 import os
 from helper_code import *
 import numpy as np
@@ -35,7 +35,10 @@ def train_challenge_model(data_folder, model_folder, verbose):
     os.makedirs(model_folder, exist_ok=True)
     
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+    with open('train.csv', encoding="utf-8") as csvfile:
+        reader = csv.reader(csvfile)
+        train_list = [row[0] for row in reader]
+    
     # Build Datasets and Loaders
     if verbose: 
         print('Loading datasets...')
@@ -45,7 +48,8 @@ def train_challenge_model(data_folder, model_folder, verbose):
     train_dataset = PCGDataset(data_folder, 
                                preprocessor = train_preprocessor, 
                                classes = DATASET_CFG['murmur_classes'],
-                               target = 'murmur')
+                               target = 'murmur',
+                               train_list=train_list)
     train_loader = DataLoader(train_dataset, 
                               shuffle=True,
                               drop_last=True, 
@@ -158,8 +162,10 @@ def run_challenge_model(model, data, recordings, verbose):
     (device, preprocessor, murmur_classifier, outcome_classifier, murmur_classes, outcome_classes) = model
     interval = 1.0
     recording_murmur_counts = np.zeros(len(murmur_classes), dtype=np.int_)
-    
-    patient_features = torch.from_numpy(load_patient_features(data)).unsqueeze(0).to(device)
+    with open('val.csv', encoding="utf-8") as csvfile:
+        reader = csv.reader(csvfile)
+        val_list = [row[0] for row in reader]
+    patient_features = torch.from_numpy(load_patient_features(data,list=val_list)).unsqueeze(0).to(device)
     recording_murmur_preds = np.zeros(len(recordings), dtype=np.int_)
     recording_outcome_preds = np.zeros(len(recordings), dtype=np.int_)
     for i in range(len(recordings)):
@@ -167,10 +173,10 @@ def run_challenge_model(model, data, recordings, verbose):
         multi_scale_specs = [s.to(device) for s in multi_scale_specs]
         recording_murmur_preds[i] = recording_murmur_diagnose(multi_scale_specs, murmur_classifier, murmur_classes, interval)
         
-        outcome_logits = outcome_classifier(multi_scale_specs, patient_features.repeat(multi_scale_specs[0].shape[0], 1))
-        segment_outcome_preds = torch.max(outcome_logits, dim=1)[1].cpu().numpy()
-        segment_outcome_counts = np.bincount(segment_outcome_preds, minlength=len(outcome_classes))
-        recording_outcome_preds[i] = 0 if (segment_outcome_counts[0] / sum(segment_outcome_counts)) > 0.33 else 1
+        # outcome_logits = outcome_classifier(multi_scale_specs, patient_features.repeat(multi_scale_specs[0].shape[0], 1))
+        # segment_outcome_preds = torch.max(outcome_logits, dim=1)[1].cpu().numpy()
+        # segment_outcome_counts = np.bincount(segment_outcome_preds, minlength=len(outcome_classes))
+        # recording_outcome_preds[i] = 0 if (segment_outcome_counts[0] / sum(segment_outcome_counts)) > 0.33 else 1
         
     recording_murmur_counts = np.bincount(recording_murmur_preds, minlength=len(murmur_classes))
     # recording_outcome_counts = np.bincount(recording_outcome_preds, minlength=2)
@@ -194,8 +200,8 @@ def run_challenge_model(model, data, recordings, verbose):
     # outcome_probabilities[idx] = 1.
     
     classes = murmur_classes + outcome_classes[:2]
-    labels = np.concatenate((murmur_labels, outcome_labels))
-    probabilities = np.concatenate((murmur_probabilities, outcome_probabilities))
+    labels = murmur_labels#np.concatenate((murmur_labels, outcome_labels))
+    probabilities = murmur_probabilities#np.concatenate((murmur_probabilities, outcome_probabilities))
 
     return classes, labels, probabilities
 

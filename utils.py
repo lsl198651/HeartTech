@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import torch
-from helper_code import find_patient_files, load_patient_data, get_num_locations, get_locations, get_murmur, get_outcome, load_wav_file
+from helper_code import find_patient_files, load_patient_data, get_num_locations, get_locations, get_patient_id,get_murmur, get_outcome, load_wav_file
 from helper_code import compare_strings, get_age, get_sex, get_height, get_weight, get_pregnancy_status
 
 
@@ -58,28 +58,33 @@ def get_patient_recording_files(data, num_locations):
     return recording_files
     
 def load_recordings_with_labels(data_folder, 
-                                included_labels=['Present', 'Absent']):
+                                included_labels=['Present', 'Absent'],
+                                list=None):
     patient_files_arr, recording_files, murmurs, outcomes = [], [], [], []
     patient_files = find_patient_files(data_folder)
-    for pf in patient_files:#pf是每一个txt文件路径
+    for pf in patient_files:#pf是每一个txt文件路径        
         patient_data = load_patient_data(pf)
-        patient_murmur = get_murmur(patient_data)
-        if patient_murmur not in included_labels:
-            continue
-        patient_murmur = included_labels.index(patient_murmur)
-        patient_outcome = outcome_mapping_str2int[get_outcome(patient_data)]
-        locations = get_locations(patient_data)
-        murmur_locations = get_murmur_locations(patient_data)
-        p_recordings = get_patient_recording_files(patient_data, len(locations))
-        # Label recording as present if murmur can be seen in the corresponding location, otherwise label as absent
-        for i in range(len(locations)):#present但是不是有杂音的听诊区，丢弃
-            if included_labels[patient_murmur] == 'Present' and locations[i] not in murmur_locations:
+        patient_id=get_patient_id(patient_data)
+        if patient_id in list:
+            patient_murmur = get_murmur(patient_data)
+            if patient_murmur not in included_labels:
                 continue
-            else:
-                patient_files_arr.append(pf)
-                recording_files.append(os.path.join(data_folder, p_recordings[i]))
-                murmurs.append(patient_murmur)
-                outcomes.append(patient_outcome)
+            patient_murmur = included_labels.index(patient_murmur)
+            patient_outcome = outcome_mapping_str2int[get_outcome(patient_data)]
+            locations = get_locations(patient_data)
+            murmur_locations = get_murmur_locations(patient_data)
+            p_recordings = get_patient_recording_files(patient_data, len(locations))
+            # Label recording as present if murmur can be seen in the corresponding location, otherwise label as absent
+            for i in range(len(locations)):#present但是不是有杂音的听诊区，丢弃
+                if included_labels[patient_murmur] == 'Present' and locations[i] not in murmur_locations:
+                    continue
+                else:
+                    patient_files_arr.append(pf)
+                    recording_files.append(os.path.join(data_folder, p_recordings[i]))
+                    murmurs.append(patient_murmur)
+                    outcomes.append(patient_outcome)
+        else:
+            pass
             
     patient_files_arr = np.array(patient_files_arr, dtype=np.str_)
     recording_files, murmurs, outcomes = np.array(recording_files, dtype=np.str_), np.array(murmurs, dtype=np.int_), np.array(outcomes, dtype=np.int_)

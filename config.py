@@ -45,7 +45,7 @@ OPTIMIZER_CFG={
 }
 
 TRAINING_CFG = {
-    'epochs': 50,
+    'epochs': 100,
     'print_freq': 50,
     'label_smoothing': 0.1,
 }
