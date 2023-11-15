@@ -40,7 +40,7 @@ class PCGDataset(Dataset):
         # 每个patient的txt路径
         # murmur 杂音等级
         # outcome outcome标签
-        self.patient_files, self.recordings, self.murmurs, self.outcomes = load_recordings_with_labels(self.data_folder, self.classes,train=train_list)
+        self.patient_files, self.recordings, self.murmurs, self.outcomes = load_recordings_with_labels(self.data_folder, self.classes,list=train_list)
         # self.unknown_idx = -1 if 'Unknown' not in self.classes else self.classes.index('Unknown')
         self.preprocessor = preprocessor
         self.target = target

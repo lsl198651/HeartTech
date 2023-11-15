@@ -28,7 +28,7 @@ if __name__ == '__main__':
     #     verbose = int(sys.argv[3])
     # else:
     #     verbose = 1
-    data_folder=r'D:\Shilong\murmur\Dataset\PCGdataset\training_data'
-    model_folder=r'D:\Shilong\murmur\00_Code\LM\CUED_Acoustics3\model'
+    data_folder=r'D:\Shilong\murmur\01_dataset\all_data\training_data'
+    model_folder=r'D:\Shilong\murmur\00_code\CUED_Acoustics3\model'
 
     train_challenge_model(data_folder, model_folder, verbose=2)

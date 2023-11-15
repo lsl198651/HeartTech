@@ -118,7 +118,7 @@ def train_epoch(dataloader, model, optimizer, criterion, scheduler=None, device=
                   f'Accuracy: {acc_meter.avg:.4%}')
             
     print(f'Training Loss: {loss_meter.avg:.6f} \n'\
-          f'Accuracy: {acc_meter.avg*100:.4f}')
+          f'Accuracy: {acc_meter.avg:.4%}')
             
     if scheduler:
         scheduler.step(loss_meter.avg)
