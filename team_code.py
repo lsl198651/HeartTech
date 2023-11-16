@@ -222,12 +222,12 @@ def save_challenge_model(model_folder, model, file_name='murmur_classifier'):
 
 # Load your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the
 # arguments of this function.
-def load_challenge_model(model_folder, verbose):
+def load_challenge_model(model_folder,i, verbose):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     preprocessor = Preprocessor(mode='test', **PREPROCESSING_CFG)
     
-    murmur_checkpoint = torch.load(os.path.join(model_folder, 'murmur_classifier.pth'), map_location=device)
+    murmur_checkpoint = torch.load(os.path.join(model_folder, f'murmur_classifier{i}.pth'), map_location=device)
     murmur_classifier = Hierachical_MS_Net(num_classes=DATASET_CFG['num_murmur_classes'], **MODEL_CFG).to(device)
     murmur_classifier.load_state_dict(murmur_checkpoint['model_state_dict'])
     murmur_classifier.eval()
