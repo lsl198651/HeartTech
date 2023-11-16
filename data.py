@@ -28,7 +28,7 @@ def build_spectrogram_transform(scale=1.0):
 class PCGDataset(Dataset):
     def __init__(self, 
                  data_folder, 
-                 classes = ['Present', 'Absent'], 
+                 classes =None, 
                  preprocessor = None,
                  target = 'murmur',
                  train_list=None
@@ -41,7 +41,7 @@ class PCGDataset(Dataset):
         # murmur 杂音等级
         # outcome outcome标签
         self.patient_files, self.recordings, self.murmurs, self.outcomes = load_recordings_with_labels(self.data_folder, self.classes,list=train_list)
-        # self.unknown_idx = -1 if 'Unknown' not in self.classes else self.classes.index('Unknown')
+        self.unknown_idx = -1 if 'Unknown' not in self.classes else self.classes.index('Unknown')
         self.preprocessor = preprocessor
         self.target = target
         

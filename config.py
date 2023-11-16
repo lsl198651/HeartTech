@@ -1,5 +1,5 @@
 DATALOADER_CFG = {
-    'batch_size': 128,
+    'batch_size': 32,
     'num_workers': 4,
     'pin_memory': True,
 }
@@ -7,7 +7,7 @@ DATALOADER_CFG = {
 DATASET_CFG = {
     'num_murmur_classes': 2,
     'num_outcome_classes': 2, 
-    'murmur_classes': ['Present',  'Absent'],
+    'murmur_classes': [ 'Absent','Present' ],
     'outcome_classes': ['Abnormal', 'Normal']
 }
 
@@ -46,6 +46,6 @@ OPTIMIZER_CFG={
 
 TRAINING_CFG = {
     'epochs': 100,
-    'print_freq': 50,
+    'print_freq': 10,
     'label_smoothing': 0.1,
 }

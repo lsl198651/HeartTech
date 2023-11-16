@@ -33,45 +33,48 @@ def train_challenge_model(data_folder, model_folder, verbose):
     verbose = verbose >= 1
     # Create a folder for the model if it does not already exist.
     os.makedirs(model_folder, exist_ok=True)
-    
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    with open('train.csv', encoding="utf-8") as csvfile:
-        reader = csv.reader(csvfile)
-        train_list = [row[0] for row in reader]
-    
-    # Build Datasets and Loaders
-    if verbose: 
-        print('Loading datasets...')
-    train_preprocessor = Preprocessor(**PREPROCESSING_CFG, 
-                                      mode = 'train')
-    
-    train_dataset = PCGDataset(data_folder, 
-                               preprocessor = train_preprocessor, 
-                               classes = DATASET_CFG['murmur_classes'],
-                               target = 'murmur',
-                               train_list=train_list)
-    train_loader = DataLoader(train_dataset, 
-                              shuffle=True,
-                              drop_last=True, 
-                              **DATALOADER_CFG)
-    
-    if verbose:
-        print('Building up Torch CNN and optimizer...')
-    murmur_classifier = Hierachical_MS_Net(num_classes=DATASET_CFG['num_murmur_classes'], **MODEL_CFG).to(device)
-    optimizer = torch.optim.AdamW(murmur_classifier.parameters(), **OPTIMIZER_CFG)
-    criterion = LabelSmoothingCrossEntropy(TRAINING_CFG['label_smoothing'])
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=5, min_lr=1e-7, verbose=verbose)
+    for i in range(5):
 
-    # Stage 1: Train the classifier for Murmur classification
-    if verbose:
-        print('Training model for murmur classification...')
-    for epoch in range(TRAINING_CFG['epochs']):
+    
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        with open(f'train_fold{i}.csv', encoding="utf-8") as csvfile:
+            reader = csv.reader(csvfile)
+            train_list = [row[0] for row in reader]
+        
+        # Build Datasets and Loaders
+        if verbose: 
+            print('Loading datasets...')
+        train_preprocessor = Preprocessor(**PREPROCESSING_CFG, 
+                                        mode = 'train')
+        
+        train_dataset = PCGDataset(data_folder, 
+                                preprocessor = train_preprocessor, 
+                                classes = DATASET_CFG['murmur_classes'],
+                                target = 'murmur',
+                                train_list=train_list)
+        train_loader = DataLoader(train_dataset, 
+                                shuffle=True,
+                                drop_last=True, 
+                                **DATALOADER_CFG)
+        
         if verbose:
-            print(f'Epoch {epoch} starts...')
-        train_epoch(train_loader, murmur_classifier, optimizer, criterion, scheduler, device, TRAINING_CFG['print_freq'])
+            print('Building up Torch CNN and optimizer...')
+        murmur_classifier = Hierachical_MS_Net(num_classes=DATASET_CFG['num_murmur_classes'], **MODEL_CFG).to(device)
+        optimizer = torch.optim.AdamW(murmur_classifier.parameters(), **OPTIMIZER_CFG)
+        criterion = LabelSmoothingCrossEntropy(TRAINING_CFG['label_smoothing'])
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=5, min_lr=1e-7, verbose=verbose)
+
+        # Stage 1: Train the classifier for Murmur classification
         if verbose:
-            print('\n')
-        save_challenge_model(model_folder, murmur_classifier, file_name='murmur_classifier')
+            print('Training model for murmur classification...')
+        for epoch in range(TRAINING_CFG['epochs']):
+            if verbose:
+                print(f'Epoch {epoch} starts...')
+            train_epoch(train_loader, murmur_classifier, optimizer, criterion, scheduler, device, TRAINING_CFG['print_freq'])
+            if verbose:
+                print('\n')
+                
+            save_challenge_model(model_folder, murmur_classifier, file_name=f'murmur_classifier{i}')
         
     # # Stage 2: Train the classifier for Outcome classification
     # train_dataset.target = 'outcome'
@@ -112,10 +115,10 @@ def train_epoch(dataloader, model, optimizer, criterion, scheduler=None, device=
         loss_meter.update(batch_loss.item(), batch_size)
         acc_meter.update(batch_acc.item(), batch_size)
             
-        if verbose and i != 0 and i % print_freq == 0:
-            print(f'Training Iteration: {i}\n '\
-                  f'Loss: {loss_meter.avg:.6f} \n'\
-                  f'Accuracy: {acc_meter.avg:.4%}')
+        # if verbose and i != 0:
+        #     print(f'Training Iteration: {i}\n '\
+        #           f'Loss: {loss_meter.avg:.6f} \n'\
+        #           f'Accuracy: {acc_meter.avg:.4%}')
             
     print(f'Training Loss: {loss_meter.avg:.6f} \n'\
           f'Accuracy: {acc_meter.avg:.4%}')
@@ -133,8 +136,8 @@ def calc_pred_locations(preds, window_size=3, interval=0.5, freq=2000):
     location_preds = np.zeros((recording_length, preds.shape[1]))
     for i in range(len(preds)):
         location_preds[i*interval: i*interval + window_size, :] += preds[i]
-    location_preds = np.argmax(location_preds, -1)
-    return location_preds
+    location_preds1 = np.argmax(location_preds,-1)
+    return location_preds1
 
 
 @torch.no_grad()
@@ -150,10 +153,10 @@ def recording_murmur_diagnose(multi_scale_specs, murmur_classifier, murmur_class
     if class_duration[1] / sum(class_duration) > 0.8:
         pred = 1
     else:
-        if class_duration[0] >= 3:
-            pred = 0
-        else:
-            pred = 2
+        # if class_duration[0] >= 3:
+        pred = 0
+        # else:
+        #     pred = 2
     return pred
     
 
@@ -165,7 +168,7 @@ def run_challenge_model(model, data, recordings, verbose):
     
     patient_features = torch.from_numpy(load_patient_features(data)).unsqueeze(0).to(device)
     recording_murmur_preds = np.zeros(len(recordings), dtype=np.int_)
-    recording_outcome_preds = np.zeros(len(recordings), dtype=np.int_)
+    # recording_outcome_preds = np.zeros(len(recordings), dtype=np.int_)
     for i in range(len(recordings)):
         multi_scale_specs, qualities = preprocessor(recordings[i], 4000, interval=interval)
         multi_scale_specs = [s.to(device) for s in multi_scale_specs]
@@ -181,13 +184,15 @@ def run_challenge_model(model, data, recordings, verbose):
     
     murmur_labels = np.zeros(len(murmur_classes), dtype=np.int_)
     #如果没有1，则为absent
-    if recording_murmur_counts[1] == 0:
-        murmur_labels=0
-    else:#否则present
-    # elif recording_murmur_counts[1] > 0 and recording_murmur_counts[2] < 2:
+    if recording_murmur_counts[0] > 0:
+        murmur_labels = 0
+        # murmur_probabilities = np.array([1., 0., 0.])
+    else:# recording_murmur_counts[1] > 0 and recording_murmur_counts[2] < 2:
         murmur_labels= 1
-        # murmur_labels[2] = 1
-        # murmur_probabilities = recording_murmur_counts / recording_murmur_counts.sum()
+    #     murmur_probabilities = np.array([0., 1., 0.])
+    # else:
+    #     murmur_labels[2] = 1
+    #     murmur_probabilities = recording_murmur_counts / recording_murmur_counts.sum()
     
     # outcome_labels = np.zeros(2, dtype=np.int_)
     # idx = 0 if recording_outcome_counts[0] > 0 else 1

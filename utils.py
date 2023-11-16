@@ -84,7 +84,7 @@ def load_recordings_with_labels(data_folder,
                     murmurs.append(patient_murmur)
                     outcomes.append(patient_outcome)
         else:
-            pass
+            continue
             
     patient_files_arr = np.array(patient_files_arr, dtype=np.str_)
     recording_files, murmurs, outcomes = np.array(recording_files, dtype=np.str_), np.array(murmurs, dtype=np.int_), np.array(outcomes, dtype=np.int_)

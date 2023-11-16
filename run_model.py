@@ -61,7 +61,7 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
         patient_data = load_patient_data(val_patient[i])
         recordings = load_recordings(data_folder, patient_data)
         target=get_murmur(patient_data)
-        murmur_target=1 if target=="Present" else 0 
+        murmur_target=1 if target=="Present" else 0
         target_all.append(murmur_target)
         # Allow or disallow the model to fail on parts of the data; helpful for debugging.
         try:
@@ -75,6 +75,8 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
             else:
                 raise
     # 计算指标：
+    for i in range(len(target_all)):
+        print(target_all[i],output_all[i])
 
     target_patient,output_patient=torch.tensor(target_all),torch.tensor(output_all)
     
@@ -82,7 +84,9 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
     roc=binary_auroc(target_patient,output_patient)
     prc=binary_auprc(target_patient,output_patient)
     f1=binary_f1_score(target_patient,output_patient)
+    cm=binary_confusion_matrix(target_patient,output_patient)
     print(f'acc:{acc:.3%}\n roc:{roc:.3f}\n prc:{prc:.3f}\n f1:{f1:.3f}')
+    print(cm)
 
 
         # # Save Challenge outputs.
