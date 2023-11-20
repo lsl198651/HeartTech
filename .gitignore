@@ -1,6 +1,10 @@
 /.ipynb_checkpoints
 /Dockerfile
 /__pycache__
+<<<<<<< HEAD
 model
 output
 *.csv
+=======
+model
+>>>>>>> 316a4d511713a1b0552297c05e890995050ce5d8
