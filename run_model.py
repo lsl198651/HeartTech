@@ -42,17 +42,17 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
     if verbose >= 1:
         print('Running model on Challenge data...')
     labels_all=[]
-    for i in range(5):
-        model = load_challenge_model(model_folder,i, verbose) ### Teams: Implement this function!!!
-        with open(f'test_fold{i}.csv', encoding="utf-8") as csvfile:
+    for f in range(5):
+        model = load_challenge_model(model_folder,f, verbose) ### Teams: Implement this function!!!
+        with open(f'test_fold{f}.csv', encoding="utf-8") as csvfile:
             reader = csv.reader(csvfile)
             val_list = [row[0] for row in reader]
         val_patient=[]
-        for i in range(num_patient_files):
-            patient_data = load_patient_data(patient_files[i])
+        for n in range(num_patient_files):
+            patient_data = load_patient_data(patient_files[n])
             id=get_patient_id(patient_data)
             if id in val_list:
-                val_patient.append(patient_files[i])
+                val_patient.append(patient_files[n])
         target_all=[]
         output_all=[]
         # Iterate over the patient files.
@@ -81,7 +81,7 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
         #     print(target_all[i],output_all[i])
 
         target_patient,output_patient=torch.tensor(target_all),torch.tensor(output_all)
-        print(f'fold{i}:')
+        print(f'fold{f}:')
         acc=binary_accuracy(target_patient,output_patient)
         roc=binary_auroc(target_patient,output_patient)
         prc=binary_auprc(target_patient,output_patient)
