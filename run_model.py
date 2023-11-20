@@ -44,7 +44,7 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
     labels_all=[]
     for i in range(5):
         model = load_challenge_model(model_folder,i, verbose) ### Teams: Implement this function!!!
-        with open(f'val{i}.csv', encoding="utf-8") as csvfile:
+        with open(f'test_fold{i}.csv', encoding="utf-8") as csvfile:
             reader = csv.reader(csvfile)
             val_list = [row[0] for row in reader]
         val_patient=[]
@@ -76,12 +76,12 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
                     classes, labels, probabilities = list(), list(), list()
                 else:
                     raise
-        # 计算指标：
-        for i in range(len(target_all)):
-            print(target_all[i],output_all[i])
+        # # 计算指标：
+        # for i in range(len(target_all)):
+        #     print(target_all[i],output_all[i])
 
         target_patient,output_patient=torch.tensor(target_all),torch.tensor(output_all)
-        
+        print(f'fold{i}:')
         acc=binary_accuracy(target_patient,output_patient)
         roc=binary_auroc(target_patient,output_patient)
         prc=binary_auprc(target_patient,output_patient)
